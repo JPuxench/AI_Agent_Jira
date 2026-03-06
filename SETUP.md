@@ -1,326 +1,287 @@
-# Jira AI Agent - Setup & Installation Guide
+# Jira Agent - Setup & Installation Guide
 
 ## Overview
 
-This project provides AI agents for automatically reading and extracting data from Jira tickets. The agents can extract specific sections (Details, Description, Test Details) from Jira tickets and export the data in multiple formats.
+This project provides a Python agent for interacting with Jira Server instances. It can:
 
-## Project Structure
+- **Read** tickets and extract all field data
+- **Create** new tickets with custom fields
+- **Replicate** existing tickets (including attachments)
+- **Search** using JQL queries
+- **Work with XRay** Test Cases and Test Repository
 
-```
-AI_Agent_Jira/
-├── jira_agent.py              # Basic agent for ticket extraction
-├── jira_agent_advanced.py     # Advanced agent with smart extraction
-├── utils.py                   # Utility functions and helpers
-├── examples.py                # Examples and usage guide
-├── requirements.txt           # Python dependencies
-├── .env.example               # Example environment variables
-├── .gitignore                 # Git ignore rules
-├── README.md                  # Main documentation
-└── SETUP.md                   # This file
-```
-
-## Quick Start
-
-### Prerequisites
+## Prerequisites
 
 - Python 3.8 or higher
 - pip (Python package manager)
-- Jira account with API token access
+- Access to a Jira Server instance
+- Personal Access Token (PAT) for authentication
 
-### Step 1: Clone and Navigate
+## Installation
+
+### Step 1: Clone the Repository
 
 ```bash
-cd c:\MyZone\Code\AI_Agent_Jira
+git clone https://github.com/JPuxench/AI_Agent_Jira.git
+cd AI_Agent_Jira
 ```
 
-### Step 2: Install Dependencies
+### Step 2: Create Virtual Environment
+
+**Windows:**
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+**Linux/Mac:**
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+### Step 3: Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Step 3: Generate Jira API Token
+### Step 4: Generate Personal Access Token (PAT)
 
-1. Log in to your Jira account
-2. Go to: https://id.atlassian.com/manage-profile/security/api-tokens
-3. Click "Create API token"
-4. Copy the generated token
+> **Important**: PAT is required for Jira Server. Do NOT use Atlassian Cloud API tokens - they won't work!
 
-### Step 4: Run the Agent
+#### How to generate a PAT:
 
-```bash
-python jira_agent.py
-```
+1. Open your Jira Server in a browser (e.g., `https://jira.yourcompany.com`)
+2. Click on your **profile avatar** in the top-right corner
+3. Select **Profile** from the dropdown menu
+4. In the left sidebar, click **Personal Access Tokens**
+5. Click the **Create token** button
+6. Enter a name for your token (e.g., "Jira Agent")
+7. Click **Create**
+8. **Copy the token immediately!** It will only be shown once.
 
-Follow the interactive prompts:
-- Jira URL: `https://your-jira-instance.com`
-- Username/Email: Your Jira username
-- API Token: Your generated token
-- Project Key: Optional (leave blank for all projects)
-- Limit: Number of tickets (default: 50)
+![PAT Location](https://confluence.atlassian.com/enterprise/files/1049769181/1049769180/1/1600186163407/PAT.png)
 
-### Step 5: Access Results
+### Step 5: Configure Environment
 
-Results are saved as JSON files in the same directory:
-```
-jira_tickets_20260304_143000.json
-```
-
-## Agent Differences
-
-### Basic Agent (`jira_agent.py`)
-
-- Simple, lightweight extraction
-- Outputs: JSON format
-- Sections: Details, Description, Test Details
-- Best for: Quick extraction of essential data
-
-**Run:**
-```bash
-python jira_agent.py
-```
-
-### Advanced Agent (`jira_agent_advanced.py`)
-
-- Comprehensive data extraction
-- Smart regex-based section detection
-- Outputs: JSON + CSV formats
-- Extraction statistics
-- XRay field detection support
-- Best for: Detailed analysis and reporting
-
-**Run:**
-```bash
-python jira_agent_advanced.py
-```
-
-## Configuration
-
-### Environment Variables
-
-Create a `.env` file from `.env.example`:
+Copy the example environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and add your credentials:
+Edit `.env` with your credentials:
 
 ```env
-JIRA_URL=https://your-jira.com
-JIRA_USERNAME=your_email@example.com
-JIRA_API_TOKEN=your_api_token
-JIRA_PROJECT=TEST
+JIRA_URL=https://jira.yourcompany.com
+JIRA_PAT=your_personal_access_token_here
+JIRA_PROJECT=EBNC
 JIRA_LIMIT=50
 ```
 
-⚠️ **Important:** Never commit `.env` files to version control.
-
-## Section Extraction
-
-The agents automatically extract the following sections from ticket descriptions:
-
-### Basic Agent Extracts:
-- **Details** - Key information about the ticket
-- **Test Details** - Testing information and requirements
-
-### Advanced Agent Additionally Extracts:
-- **Description** - Main ticket description
-- **Steps** - Steps to reproduce (for bugs)
-- **Expected** - Expected behavior/results
-- **Actual** - Actual behavior/results
-- **Environment** - Environment information
-- **Acceptance Criteria** - Acceptance criteria (for features)
-
-## Examples
-
-### View Examples
+### Step 6: Test the Connection
 
 ```bash
-python examples.py              # Show all examples
-python examples.py basic        # Show basic extraction example
-python examples.py advanced     # Show advanced extraction example
-python examples.py workflow     # Show example workflow
-python examples.py tips         # Show tips and best practices
+python -c "
+from jira import JIRA
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+jira = JIRA(server=os.getenv('JIRA_URL'), token_auth=os.getenv('JIRA_PAT'))
+me = jira.myself()
+print(f'Connected as: {me[\"displayName\"]}')
+"
 ```
 
-### Using Utility Functions
+If successful, you'll see: `Connected as: Your Name`
+
+## Usage
+
+### Interactive Mode
+
+Run the main agent:
+
+```bash
+python jira_agent.py
+```
+
+Follow the prompts to:
+1. Confirm Jira URL (from .env)
+2. Confirm authentication (PAT from .env)
+3. Select project and limit
+4. Choose XRay filters (optional)
+
+### Programmatic Usage
 
 ```python
-from utils import TextProcessor, JiraDataFormatter, JiraFilter
+from jira import JIRA
+import os
+from dotenv import load_dotenv
 
-# Extract specific sections
-details = TextProcessor.extract_markdown_section(text, "Details")
+load_dotenv()
 
-# Format data as markdown
-report = JiraDataFormatter.format_markdown_report(tickets)
+# Connect to Jira
+jira = JIRA(
+    server=os.getenv('JIRA_URL'),
+    token_auth=os.getenv('JIRA_PAT')
+)
 
-# Filter tickets
-bugs = JiraFilter.filter_by_type(tickets, "Bug")
-critical = JiraFilter.filter_by_status(tickets, "Critical")
+# Search for tickets
+issues = jira.search_issues(
+    'project = EBNC AND issuetype = "Xray Test Case"',
+    maxResults=50
+)
+
+# Process tickets
+for issue in issues:
+    print(f"{issue.key}: {issue.fields.summary}")
+    print(f"  Status: {issue.fields.status.name}")
+    print(f"  Assignee: {issue.fields.assignee.displayName if issue.fields.assignee else 'Unassigned'}")
 ```
 
-## Output Formats
+## Working with XRay Test Cases
 
-### JSON Output Structure
+### Find Tests by Repository Path
 
-**Basic:**
-```json
-[
-  {
-    "key": "TEST-1",
-    "summary": "Ticket title",
-    "type": "Bug",
-    "status": "Open",
-    "description": "Full description",
-    "details": "Extracted Details section",
-    "test_details": "Extracted Test Details section"
-  }
-]
+XRay Test Cases have a custom field for the repository path (`customfield_21412` in our instance):
+
+```python
+# Fetch all Xray Test Cases
+issues = jira.search_issues(
+    'project = EBNC AND issuetype = "Xray Test Case"',
+    maxResults=500
+)
+
+# Filter by path
+crossaccounting_tests = []
+for issue in issues:
+    path = getattr(issue.fields, 'customfield_21412', '') or ''
+    if 'CrossAccounting' in path:
+        crossaccounting_tests.append(issue)
+
+print(f"Found {len(crossaccounting_tests)} tests in CrossAccounting")
 ```
 
-**Advanced:**
-```json
-[
-  {
-    "ticket_metadata": {
-      "key": "TEST-1",
-      "summary": "Ticket title",
-      "type": "Bug",
-      "status": "Open"
-    },
-    "extracted_sections": {
-      "Details": "...",
-      "Description": "...",
-      "Test Details": "..."
-    },
-    "custom_metadata": {
-      "labels": ["label1"],
-      "assignee": "Name"
-    }
-  }
-]
+### Extract Cucumber Scenarios
+
+```python
+issue = jira.issue('EBNC-50706')
+
+# Get Cucumber scenario (customfield_21404)
+cucumber = getattr(issue.fields, 'customfield_21404', '')
+print(cucumber)
 ```
 
-### CSV Output
+### Create a Test Case
 
-The advanced agent also generates CSV files with:
-- Key
-- Summary
-- Type
-- Status
-- Priority
-- Details (first 100 chars)
-- Test Details (first 100 chars)
-- Created date
-- Updated date
+```python
+new_test = jira.create_issue(fields={
+    'project': {'key': 'EBNC'},
+    'summary': 'Test case created by agent',
+    'description': 'Test description here',
+    'issuetype': {'name': 'Xray Test Case'},
+    'labels': ['automated'],
+    'components': [{'name': 'Cross-Accounting'}],
+    'customfield_21412': '/CrossAccounting',  # XRay path
+    'customfield_21402': {'id': '25005'},     # Test Type: Cucumber
+    'customfield_21403': {'id': '25007'},     # Scenario
+})
+print(f"Created: {new_test.key}")
+```
+
+## Custom Fields Reference
+
+Common custom fields in our Jira instance:
+
+| Field ID | Name | Description |
+|----------|------|-------------|
+| `customfield_21412` | XRay Test Repository Path | Path in test repository (e.g., `/CrossAccounting`) |
+| `customfield_21402` | Test Type | Cucumber (id: 25005), Manual, Generic |
+| `customfield_21403` | Test Type Sub | Scenario (id: 25007), etc. |
+| `customfield_21404` | Cucumber Scenario | Gherkin test scenario |
+| `customfield_12001` | Expected Result | Expected test result |
+| `customfield_15518` | Automation Status | Pending Automation, Automated, etc. |
+
+To list all custom fields:
+
+```python
+for field in jira.fields():
+    if field['custom']:
+        print(f"{field['id']}: {field['name']}")
+```
 
 ## Troubleshooting
 
-### Connection Issues
+### Error: "HTTP 500 Internal Server Error"
 
-**Error:** "Invalid credentials"
-- **Solution:** Verify your username and API token are correct
-- Generate a new token: https://id.atlassian.com/manage-profile/security/api-tokens
+**Cause**: Wrong authentication method.
 
-**Error:** "Connection timeout"
-- **Solution:** Check your internet connection and Jira URL
-- Ensure the Jira instance is accessible
+**Solution**:
+- Jira Server requires PAT (Personal Access Token)
+- Jira Cloud requires Username + API Token
+- Make sure you're using the correct method for your instance
 
-### No Tickets Found
+### Error: "Could not find valid 'id' or 'value'"
 
-- Verify the project key is correct
-- Check your Jira permissions
-- Try without specifying a project (fetch all)
+**Cause**: Custom field requires specific format.
 
-### Missing Sections
-
-Some tickets may not have all sections. Check:
-- Ticket description format
-- Custom field configurations
-- Project-specific templates
-
-## Advanced Features
-
-### Custom Filtering
-
+**Solution**: Use `{'id': 'xxx'}` format instead of string value:
 ```python
-from utils import JiraFilter
+# Wrong
+'customfield_21402': 'Cucumber'
 
-# Filter by status
-open_issues = JiraFilter.filter_by_status(tickets, "Open")
-
-# Filter by type
-bugs = JiraFilter.filter_by_type(tickets, "Bug")
-
-# Search by keyword
-results = JiraFilter.filter_by_contains(tickets, "authentication")
-
-# Find incomplete tickets
-incomplete = JiraFilter.get_tickets_with_missing_sections(tickets)
+# Correct
+'customfield_21402': {'id': '25005'}
 ```
 
-### Text Processing
+### Error: "Field 'xxx' does not exist"
 
+**Cause**: Field ID varies between Jira instances.
+
+**Solution**: List all fields and find the correct ID:
 ```python
-from utils import TextProcessor
-
-# Clean and normalize text
-cleaned = TextProcessor.normalize_whitespace(text)
-
-# Extract code blocks
-code = TextProcessor.extract_code_blocks(text)
-
-# Find links
-links = TextProcessor.extract_links(text)
-
-# Remove HTML
-plain = TextProcessor.remove_html_tags(html_text)
+for f in jira.fields():
+    if 'test' in f['name'].lower():
+        print(f"{f['id']}: {f['name']}")
 ```
 
-## Performance Tips
+### Error: "You do not have permission"
 
-1. **Set reasonable limits** (50-100 tickets) to avoid timeouts
-2. **Use project filtering** to reduce data volume
-3. **Run during off-peak hours** for better performance
-4. **Check batch size settings** in Jira if fetching large amounts
+**Cause**: Your account lacks required permissions.
+
+**Solution**: Contact your Jira administrator to grant:
+- Browse Projects
+- Create Issues
+- Attach Files to Issues
+- Edit Issues
 
 ## Security Best Practices
 
-1. ✅ Use API tokens instead of passwords
-2. ✅ Store credentials in `.env` file (not in code)
-3. ✅ Never commit credentials to version control
-4. ✅ Rotate API tokens regularly
-5. ✅ Use HTTPS URL for Jira
-6. ✅ Restrict file permissions on credential files
+1. **Never commit `.env` files** to version control
+2. **Never share your PAT** - treat it like a password
+3. **Rotate PAT regularly** - regenerate every 3-6 months
+4. **Revoke unused PATs** - delete tokens you no longer need
+5. **Use minimal permissions** - only request necessary access
 
-## Support & Documentation
+## Project Files
 
-- [Jira Python Documentation](https://jira-python.readthedocs.io/)
-- [Jira REST API Docs](https://developer.atlassian.com/cloud/jira/rest/v3/)
-- [Jira API Token Guide](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/)
+| File | Description |
+|------|-------------|
+| `jira_agent.py` | Main agent with PAT authentication support |
+| `jira_agent_advanced.py` | Advanced extraction with additional features |
+| `utils.py` | Utility functions for text processing |
+| `examples.py` | Usage examples and code snippets |
+| `requirements.txt` | Python dependencies |
+| `.env.example` | Template for environment variables |
 
-## License & Attribution
+## Support
 
-This project is created for automated Jira ticket data extraction.
-
-## FAQ
-
-**Q: Can I use this with Jira Server/Data Center?**
-A: Yes, update the URL to your Jira instance.
-
-**Q: How do I handle 2FA/MFA?**
-A: Use API tokens, which bypass 2FA requirements.
-
-**Q: Can I extract custom fields?**
-A: The advanced agent can detect custom fields. Extend `extract_xray_fields()` for specific fields.
-
-**Q: How many tickets can I fetch at once?**
-A: Depends on server limits. Start with 50-100 and adjust.
-
-**Q: Can I schedule this to run automatically?**
-A: Yes, use Windows Task Scheduler or cron (Linux/Mac).
+- **Jira Python Library**: https://jira-python.readthedocs.io/
+- **Jira REST API**: https://developer.atlassian.com/cloud/jira/rest/v3/
+- **XRay Documentation**: https://docs.getxray.app/
 
 ---
 
-**Last Updated:** March 4, 2026
+**Last Updated**: March 2026

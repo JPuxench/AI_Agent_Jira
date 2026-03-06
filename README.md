@@ -1,140 +1,235 @@
-# Jira Ticket Data Extractor Agent
+# Jira Agent
 
-An AI agent that reads Jira tickets and extracts specific data sections including Details, Description, and Test Details.
+A Python agent for interacting with Jira Server instances. It can read, extract, and create Jira tickets programmatically.
 
 ## Features
 
-- 🔗 Connect to any Jira instance
-- 📥 Fetch tickets from specified project or all projects
-- 🔍 Extract structured data from ticket sections
-- 💾 Export data to JSON format
-- 📊 Display summary of extracted information
+- **Read tickets**: Fetch and extract data from Jira tickets
+- **Create tickets**: Replicate or create new tickets with all fields
+- **XRay support**: Works with XRay Test Cases and Test Repository paths
+- **Attachments**: Download and upload attachments between tickets
+- **Export**: Save extracted data to JSON format
 
-## Requirements
+## Tech Stack
 
-- Python 3.8+
-- pip or conda
+| Component | Version | Description |
+|-----------|---------|-------------|
+| Python | 3.8+ | Programming language |
+| jira | 3.10.5 | Official Jira Python library |
+| python-dotenv | 1.0.0 | Environment variable management |
+| requests | 2.31.0 | HTTP library for API calls |
 
-## Installation
+## Quick Start
 
-1. Clone this repository
-   ```bash
-   cd c:\MyZone\Code\AI_Agent_Jira
-   ```
+### 1. Clone the repository
 
-2. Install dependencies
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+git clone https://github.com/JPuxench/AI_Agent_Jira.git
+cd AI_Agent_Jira
+```
 
-## Usage
+### 2. Create virtual environment
 
-Run the agent:
+```bash
+python -m venv .venv
+.venv\Scripts\activate  # Windows
+# or
+source .venv/bin/activate  # Linux/Mac
+```
+
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Configure credentials
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your credentials (see [Authentication](#authentication) below).
+
+### 5. Run the agent
+
 ```bash
 python jira_agent.py
 ```
 
-### Interactive Prompts
+## Authentication
 
-The agent will ask for:
+This agent supports **two authentication methods**:
 
-1. **Jira URL**: The URL of your Jira instance (e.g., `https://jira.example.com`)
-2. **Username/Email**: Your Jira username or email address
-3. **API Token**: Your Jira API token (or password)
-   - To generate an API token: https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/
-4. **Project Key** (optional): Filter by project (e.g., `TEST`, `PROJ`)
-5. **Limit**: Maximum number of tickets to fetch (default: 50)
+### Option 1: Personal Access Token (PAT) - Recommended for Jira Server
 
-### Output
+PAT is the recommended method for Jira Server/Data Center installations.
 
-The agent will:
-- Display a summary in the terminal showing processed tickets
-- Extract and save data to a JSON file with timestamp: `jira_tickets_YYYYMMDD_HHMMSS.json`
+#### How to generate a PAT:
 
-### JSON Output Format
+1. Log in to your Jira Server instance
+2. Click on your **profile avatar** (top right corner)
+3. Select **Profile**
+4. In the left sidebar, click **Personal Access Tokens**
+5. Click **Create token**
+6. Give it a name (e.g., "Jira Agent") and click **Create**
+7. **Copy the token immediately** - it won't be shown again!
 
-```json
-[
-  {
-    "key": "TEST-1",
-    "summary": "Ticket title",
-    "type": "Bug",
-    "status": "In Progress",
-    "created": "2024-01-01T10:00:00+00:00",
-    "updated": "2024-01-02T15:30:00+00:00",
-    "description": "Full ticket description",
-    "details": "Extracted Details section",
-    "test_details": "Extracted Test Details section",
-    "labels": ["label1", "label2"],
-    "assignee": "John Doe",
-    "reporter": "Jane Smith"
-  }
-]
+#### Configure in `.env`:
+
+```env
+JIRA_URL=https://your-jira-server.com
+JIRA_PAT=your_personal_access_token_here
+JIRA_PROJECT=YOUR_PROJECT_KEY
+JIRA_LIMIT=50
 ```
 
-## Section Extraction
+### Option 2: Basic Auth (Username + API Token) - For Jira Cloud
 
-The agent automatically extracts:
+If you're using Jira Cloud (atlassian.net), use this method:
 
-- **Details**: Content under "Details" section in description
-- **Description**: Full ticket description
-- **Test Details**: Content under "Test Details" section in description
+1. Go to: https://id.atlassian.com/manage-profile/security/api-tokens
+2. Click **Create API token**
+3. Copy the token
+
+#### Configure in `.env`:
+
+```env
+JIRA_URL=https://your-company.atlassian.net
+JIRA_USERNAME=your_email@example.com
+JIRA_API_TOKEN=your_api_token_here
+JIRA_PROJECT=YOUR_PROJECT_KEY
+JIRA_LIMIT=50
+```
 
 ## Configuration
 
-You can also set environment variables (optional):
+### Environment Variables
 
-Create a `.env` file:
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `JIRA_URL` | Yes | Your Jira instance URL |
+| `JIRA_PAT` | Yes* | Personal Access Token (for Jira Server) |
+| `JIRA_USERNAME` | Yes* | Your email (for Jira Cloud) |
+| `JIRA_API_TOKEN` | Yes* | API Token (for Jira Cloud) |
+| `JIRA_PROJECT` | No | Default project key to filter tickets |
+| `JIRA_LIMIT` | No | Maximum tickets to fetch (default: 50) |
+
+\* Either `JIRA_PAT` or (`JIRA_USERNAME` + `JIRA_API_TOKEN`) is required.
+
+## Usage Examples
+
+### Read tickets from a project
+
+```python
+from jira import JIRA
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Connect using PAT
+jira = JIRA(
+    server=os.getenv('JIRA_URL'),
+    token_auth=os.getenv('JIRA_PAT')
+)
+
+# Fetch tickets
+issues = jira.search_issues('project = EBNC ORDER BY updated DESC', maxResults=10)
+for issue in issues:
+    print(f"{issue.key}: {issue.fields.summary}")
 ```
-JIRA_URL=https://jira.example.com
-JIRA_USERNAME=your_username
-JIRA_API_TOKEN=your_token
+
+### Create a new ticket
+
+```python
+new_issue = jira.create_issue(fields={
+    'project': {'key': 'EBNC'},
+    'summary': 'New ticket created by agent',
+    'description': 'This ticket was created programmatically',
+    'issuetype': {'name': 'Task'},
+})
+print(f"Created: {new_issue.key}")
+```
+
+### Work with XRay Test Cases
+
+```python
+# Search for XRay Test Cases in a specific repository path
+issues = jira.search_issues(
+    'project = EBNC AND issuetype = "Xray Test Case"',
+    maxResults=100
+)
+
+# Filter by XRay repository path
+for issue in issues:
+    path = getattr(issue.fields, 'customfield_21412', '')
+    if 'CrossAccounting' in (path or ''):
+        print(f"{issue.key}: {issue.fields.summary}")
+```
+
+### Upload attachments
+
+```python
+# Add attachment to a ticket
+jira.add_attachment(issue='EBNC-12345', attachment='/path/to/file.png')
+```
+
+## Project Structure
+
+```
+AI_Agent_Jira/
+├── jira_agent.py           # Main agent with PAT support
+├── jira_agent_advanced.py  # Advanced extraction features
+├── utils.py                # Utility functions
+├── examples.py             # Usage examples
+├── requirements.txt        # Python dependencies
+├── .env.example            # Environment template
+├── .gitignore              # Git ignore rules
+├── README.md               # This file
+├── SETUP.md                # Detailed setup guide
+└── QUICKSTART.md           # Quick reference guide
 ```
 
 ## Troubleshooting
 
-### Connection Issues
-- Verify your Jira URL is correct (include http:// or https://)
-- Check your username and API token
-- Ensure you have network access to the Jira instance
+### "HTTP 500 Internal Server Error"
 
-### No Tickets Found
-- Verify the project key is correct
-- Check that you have permission to view tickets in that project
-- Try fetching all projects by leaving project key empty
+This usually means authentication failed:
+- **Jira Server**: Make sure you're using PAT, not a Cloud API token
+- **Jira Cloud**: Make sure you're using API token with username
 
-### API Token Issues
-- Generate a new API token at https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/
-- Ensure the token has read permissions
+### "Field does not exist"
 
-## Examples
+Custom fields vary between Jira instances. Check available fields:
 
-### Fetch all tickets from all projects
-```
-Enter Jira URL: https://jira.example.com
-Enter username/email: user@example.com
-Enter API token: ****
-Enter project key: <press Enter to skip>
-Enter maximum number of tickets: 100
+```python
+for field in jira.fields():
+    print(f"{field['id']}: {field['name']}")
 ```
 
-### Fetch only from TEST project
-```
-Enter Jira URL: https://jira.example.com
-Enter username/email: user@example.com
-Enter API token: ****
-Enter project key: TEST
-Enter maximum number of tickets: 50
-```
+### "Permission denied"
 
-## Notes
+Ensure your account has the required permissions:
+- Browse Projects
+- Create Issues (if creating tickets)
+- Attach Files (if uploading attachments)
 
-- API tokens are recommended over passwords for security
-- The agent respects Jira instance permissions
-- Maximum results depend on your Jira server configuration
+## Security Best Practices
+
+1. **Never commit `.env` files** - they contain credentials
+2. **Use PAT over passwords** - PATs can be revoked independently
+3. **Rotate tokens regularly** - regenerate PAT every few months
+4. **Use minimal permissions** - only grant necessary access
 
 ## Support
 
-For issues with Jira API, see:
-- https://developer.atlassian.com/cloud/jira/rest/v3/
-- https://jira-python.readthedocs.io/
+- [Jira Python Library Docs](https://jira-python.readthedocs.io/)
+- [Jira REST API Reference](https://developer.atlassian.com/cloud/jira/rest/v3/)
+- [XRay Documentation](https://docs.getxray.app/)
+
+## License
+
+Internal use only - Sage Active team.

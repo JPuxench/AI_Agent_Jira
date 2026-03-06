@@ -1,205 +1,125 @@
-# Jira AI Agent - Quick Reference
+# Jira Agent - Quick Start Guide
 
-## Installation (5 minutes)
+## 5-Minute Setup
+
+### 1. Install
 
 ```bash
-cd c:\MyZone\Code\AI_Agent_Jira
+git clone https://github.com/JPuxench/AI_Agent_Jira.git
+cd AI_Agent_Jira
+python -m venv .venv
+.venv\Scripts\activate      # Windows
 pip install -r requirements.txt
 ```
 
-## Run Basic Agent
+### 2. Get Your PAT (Personal Access Token)
+
+1. Go to **Jira** > **Profile** > **Personal Access Tokens**
+2. Click **Create token**
+3. Copy the token (only shown once!)
+
+### 3. Configure
 
 ```bash
-python jira_agent.py
+cp .env.example .env
 ```
 
-**Interactive Prompts:**
-1. Jira URL: `https://your-jira.com`
-2. Username/Email: Your email
-3. API Token: [Get from https://id.atlassian.com/manage-profile/security/api-tokens]
-4. Project Key: `TEST` (or leave blank)
-5. Limit: `50`
-
-**Output:** `jira_tickets_YYYYMMDD_HHMMSS.json`
-
-## Run Advanced Agent (with CSV export)
-
-```bash
-python jira_agent_advanced.py
-```
-
-**Output:** 
-- `jira_tickets_advanced_YYYYMMDD_HHMMSS.json`
-- `jira_tickets_summary_YYYYMMDD_HHMMSS.csv`
-
-## View Examples
-
-```bash
-python examples.py basic       # Basic extraction example
-python examples.py advanced    # Advanced extraction example
-python examples.py workflow    # Step-by-step workflow
-python examples.py tips        # Tips and best practices
-```
-
-## What Gets Extracted
-
-### From Ticket Sections:
-- ✅ **Details** - Key information
-- ✅ **Description** - Main description
-- ✅ **Test Details** - Testing information
-
-### Additional Data:
-- ✅ Ticket key and summary
-- ✅ Type, status, priority
-- ✅ Created/Updated dates
-- ✅ Assignee and reporter
-- ✅ Labels and components
-
-## Configuration (Optional)
-
-Create `.env` file:
+Edit `.env`:
 ```env
-JIRA_URL=https://your-jira.com
-JIRA_USERNAME=your_email@example.com
-JIRA_API_TOKEN=your_token
+JIRA_URL=https://jira.sage.com
+JIRA_PAT=your_token_here
+JIRA_PROJECT=EBNC
 ```
 
-## Files Overview
-
-| File | Purpose |
-|------|---------|
-| `jira_agent.py` | Basic ticket extraction agent |
-| `jira_agent_advanced.py` | Advanced agent with smart extraction |
-| `utils.py` | Helper functions and utilities |
-| `examples.py` | Usage examples and guides |
-| `requirements.txt` | Python dependencies |
-| `README.md` | Full documentation |
-| `SETUP.md` | Detailed setup guide |
-
-## Troubleshooting
-
-### "Invalid credentials"
-→ Verify Jira username and API token
-
-### "Connection timeout"
-→ Check Jira URL and internet connection
-
-### "No tickets found"
-→ Try without specifying project (leave blank)
-
-### Missing sections
-→ Check if ticket description contains "Details:" or "Test Details:"
-
-## Get API Token
-
-1. Go to: https://id.atlassian.com/manage-profile/security/api-tokens
-2. Click "Create API token"
-3. Copy token
-4. Use in agent when prompted
-
-## Command Cheat Sheet
+### 4. Run
 
 ```bash
-# Install
-pip install -r requirements.txt
-
-# Run basic agent
 python jira_agent.py
-
-# Run advanced agent
-python jira_agent_advanced.py
-
-# View examples
-python examples.py
-
-# Show help
-python jira_agent.py --help
-python jira_agent_advanced.py --help
-
-# Delete old outputs
-rm jira_tickets_*.json
-rm jira_tickets_*.csv
 ```
 
-## JSON Output Example
+## Quick Commands
 
-```json
-[
-  {
-    "key": "TEST-1",
-    "summary": "Implement authentication",
-    "type": "Task",
-    "status": "Open",
-    "priority": "High",
-    "created": "2024-01-15T10:30:00",
-    "updated": "2024-03-04T14:20:00",
-    "description": "Full ticket description...",
-    "details": "Details section content...",
-    "test_details": "Test details section...",
-    "assignee": "John Doe",
-    "labels": ["auth", "high-priority"]
-  }
-]
-```
+| Task | Command |
+|------|---------|
+| Run agent | `python jira_agent.py` |
+| Run advanced | `python jira_agent_advanced.py` |
+| View examples | `python examples.py` |
 
-## Key Functions in utils.py
+## Code Snippets
+
+### Connect to Jira
 
 ```python
-from utils import (
-    TextProcessor,           # Text extraction & processing
-    JiraDataFormatter,       # Format data (JSON, CSV, Markdown)
-    JiraFilter,             # Filter tickets
-    CredentialsManager,     # Manage credentials
-)
+from jira import JIRA
+import os
+from dotenv import load_dotenv
 
-# Extract sections
-TextProcessor.extract_markdown_section(text, "Details")
-
-# Filter tickets
-JiraFilter.filter_by_type(tickets, "Bug")
-JiraFilter.filter_by_status(tickets, "Open")
-
-# Format as markdown report
-JiraDataFormatter.format_markdown_report(tickets)
+load_dotenv()
+jira = JIRA(server=os.getenv('JIRA_URL'), token_auth=os.getenv('JIRA_PAT'))
 ```
 
-## Common JQL Queries (in agent)
+### Read Tickets
 
-| Query | Projects |
-|-------|---------|
-| (leave blank) | All tickets |
-| `TEST` | Only TEST project |
-| `PROJ` | Only PROJ project |
+```python
+issues = jira.search_issues('project = EBNC', maxResults=10)
+for issue in issues:
+    print(f"{issue.key}: {issue.fields.summary}")
+```
 
-## Security Tips
+### Create Ticket
 
-🔐 **Do:**
-- Use API tokens (stronger than passwords)
-- Store credentials in `.env` file only
-- Rotate API tokens regularly
+```python
+new = jira.create_issue(fields={
+    'project': {'key': 'EBNC'},
+    'summary': 'My ticket',
+    'issuetype': {'name': 'Task'},
+})
+print(f"Created: {new.key}")
+```
 
-❌ **Don't:**
-- Commit `.env` to version control
-- Share API tokens
-- Use default/weak passwords
-- Store credentials in code
+### Find XRay Tests
 
-## Next Steps
+```python
+tests = jira.search_issues('project = EBNC AND issuetype = "Xray Test Case"')
+for t in tests:
+    path = getattr(t.fields, 'customfield_21412', '')
+    print(f"{t.key}: {path}")
+```
 
-1. ✅ Install dependencies
-2. ✅ Generate Jira API token
-3. ✅ Run basic agent: `python jira_agent.py`
-4. ✅ Review extracted data in JSON file
-5. ✅ Try advanced agent for more features
-6. ✅ Use utils for custom analysis
+## Common Issues
 
-## Need Help?
+| Error | Solution |
+|-------|----------|
+| HTTP 500 | Use PAT, not Cloud API token |
+| Permission denied | Ask admin for access |
+| Field not found | Field IDs vary per Jira instance |
 
-- See `README.md` for full documentation
-- See `SETUP.md` for detailed setup
-- Run `python examples.py` for examples
-- Check Jira developer docs: https://developer.atlassian.com/
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `JIRA_URL` | Yes | Jira server URL |
+| `JIRA_PAT` | Yes | Personal Access Token |
+| `JIRA_PROJECT` | No | Default project |
+| `JIRA_LIMIT` | No | Max tickets (default: 50) |
+
+## Output Files
+
+- `jira_tickets_YYYYMMDD_HHMMSS.json` - Extracted data
+- `jira_tickets_summary_*.csv` - Summary (advanced agent)
+
+## Security
+
+- **Never commit `.env`** to git
+- **Rotate PAT** every 3-6 months
+- **Revoke PAT** if compromised
+
+## More Help
+
+- Full docs: `README.md`
+- Setup guide: `SETUP.md`
+- Examples: `python examples.py`
 
 ---
 
-**Created:** March 4, 2026 | **Version:** 1.0
+**Version**: 2.0 | **Updated**: March 2026
