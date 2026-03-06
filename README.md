@@ -230,6 +230,6 @@ Ensure your account has the required permissions:
 - [Jira REST API Reference](https://developer.atlassian.com/cloud/jira/rest/v3/)
 - [XRay Documentation](https://docs.getxray.app/)
 
-## License
+---
 
-Internal use only - Sage Active team.
+**Last Updated**: 2026.Mar.06 - 16:30:00
