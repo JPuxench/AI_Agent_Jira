@@ -55,35 +55,47 @@ def masked_input(prompt: str) -> str:
 
 class JiraTicketExtractor:
     """Agent for extracting data from Jira tickets."""
-    
-    def __init__(self, jira_url: str, username: str, api_token: str):
+
+    def __init__(self, jira_url: str, pat: str = None, username: str = None, api_token: str = None):
         """
         Initialize the Jira extractor.
-        
+
         Args:
             jira_url: URL of the Jira instance (e.g., https://jira.example.com)
-            username: Jira username or email
-            api_token: Jira API token
+            pat: Personal Access Token for Jira Server (preferred)
+            username: Jira username or email (for basic auth fallback)
+            api_token: Jira API token (for basic auth fallback)
         """
         self.jira_url = jira_url
+        self.pat = pat
         self.username = username
         self.api_token = api_token
         self.jira = None
         self.tickets_data = []
-        
+
     def connect(self) -> bool:
         """
         Connect to Jira instance.
-        
+
         Returns:
             bool: True if connection successful, False otherwise
         """
         try:
             print(f"\n🔗 Connecting to Jira: {self.jira_url}")
-            self.jira = JIRA(
-                server=self.jira_url,
-                basic_auth=(self.username, self.api_token)
-            )
+
+            if self.pat:
+                # Use Personal Access Token (Bearer token) for Jira Server
+                self.jira = JIRA(
+                    server=self.jira_url,
+                    token_auth=self.pat
+                )
+            else:
+                # Fallback to basic auth for Jira Cloud
+                self.jira = JIRA(
+                    server=self.jira_url,
+                    basic_auth=(self.username, self.api_token)
+                )
+
             # Test the connection
             self.jira.myself()
             print("✅ Successfully connected to Jira!")
@@ -291,19 +303,39 @@ def prompt_for_jira_url() -> str:
 
 
 def prompt_for_credentials() -> tuple:
-    """Prompt user for Jira credentials."""
-    # Check for env variables first
+    """Prompt user for Jira credentials.
+
+    Returns:
+        tuple: (pat, username, api_token) - PAT is preferred for Jira Server
+    """
+    # Check for PAT first (Jira Server)
+    env_pat = os.getenv('JIRA_PAT')
+    if env_pat:
+        print("\n🔐 Using Personal Access Token from .env file")
+        return env_pat, None, None
+
+    # Check for basic auth credentials (Jira Cloud)
     env_username = os.getenv('JIRA_USERNAME')
     env_token = os.getenv('JIRA_API_TOKEN')
-    
+
     if env_username and env_token:
         print("\n🔐 Using credentials from .env file")
-        return env_username, env_token
-    
+        return None, env_username, env_token
+
+    # Prompt user for credentials
     print("\n🔐 Jira Authentication")
-    username = input("Enter username/email: ").strip()
-    api_token = masked_input("Enter API token (or password): ")
-    return username, api_token
+    print("   For Jira Server, use a Personal Access Token (PAT)")
+    print("   For Jira Cloud, use username + API token")
+
+    auth_type = input("Use PAT (p) or username/token (u)? [p]: ").strip().lower()
+
+    if auth_type == 'u':
+        username = input("Enter username/email: ").strip()
+        api_token = masked_input("Enter API token (or password): ")
+        return None, username, api_token
+    else:
+        pat = masked_input("Enter Personal Access Token: ")
+        return pat, None, None
 
 
 def prompt_for_project_and_limit() -> tuple:
@@ -362,10 +394,10 @@ def main():
     try:
         # Get user inputs
         jira_url = prompt_for_jira_url()
-        username, api_token = prompt_for_credentials()
+        pat, username, api_token = prompt_for_credentials()
         project, limit = prompt_for_project_and_limit()
         xray_filter = prompt_for_xray_filter()
-        
+
         # Build JQL query
         jql_query = None
         if xray_filter:
@@ -373,9 +405,9 @@ def main():
                 jql_query = f'project = {project} AND {xray_filter}'
             else:
                 jql_query = xray_filter
-        
+
         # Create and run extractor
-        extractor = JiraTicketExtractor(jira_url, username, api_token)
+        extractor = JiraTicketExtractor(jira_url, pat=pat, username=username, api_token=api_token)
         
         if not extractor.connect():
             print("\n❌ Failed to connect to Jira. Exiting.")
