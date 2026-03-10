@@ -5,7 +5,11 @@
 
 # Output files
 jira_tickets_*.json
+jira_ticket.json
 *.json~
+
+# Claude Code local settings
+.claude/settings.local.json
 
 # Python
 __pycache__/
