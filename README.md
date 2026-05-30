@@ -1,6 +1,6 @@
 # Jira Agent
 
-A Python agent for interacting with Jira Server instances. It can read, extract, and create Jira tickets programmatically.
+A Python agent (Poc) for interacting with Jira Server instances. It can read, extract, and create Jira tickets programmatically.
 
 ## Features
 
